@@ -2,7 +2,7 @@
 -- templates (tenant_id null) with their default role_permissions mapping.
 -- Mirrors packages/shared-types/src/permissions.ts exactly — keep both in
 -- sync when the registry changes (§6.2).
--- verify: select count(*) from permissions; -- = 55
+-- verify: select count(*) from permissions; -- = 65
 -- verify: select count(*) from roles where tenant_id is null; -- = 13
 
 insert into permissions (key, description, category) values
