@@ -1,0 +1,4 @@
+-- Reference/demo seed data (Appendix C) lands here in a follow-up increment —
+-- admin divisions, charge-code packs, tax profiles, notification templates,
+-- HK checklist, and the "Harar Gate Hotel" demo dataset. Permission registry
+-- and system role templates are already seeded via migration 0007.
