@@ -1,0 +1,30 @@
+{
+  "_comment": "Non-secret identifiers only — never put access tokens or DB passwords here. Update this file (and reference/environments.md) when a staging/prod project is actually provisioned.",
+  "vercel": {
+    "project_id": "prj_kJJMsHMpAEL7mRTea2mNfFpKFBFG",
+    "org_id": null,
+    "root_directory": "apps/web"
+  },
+  "supabase": {
+    "dev": {
+      "project_ref": "hcwcxsijcozoqlrrisjf",
+      "url": "https://hcwcxsijcozoqlrrisjf.supabase.co",
+      "provisioned": true
+    },
+    "staging": {
+      "project_ref": null,
+      "url": null,
+      "provisioned": false
+    },
+    "prod": {
+      "project_ref": null,
+      "url": null,
+      "provisioned": false
+    }
+  },
+  "web_domains": {
+    "dev": null,
+    "staging": null,
+    "prod": null
+  }
+}

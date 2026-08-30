@@ -27,6 +27,8 @@ Per-package (run from `apps/web`): `pnpm lint` = `eslint . --max-warnings 0`; `p
 
 Local dev needs `apps/web/.env` (copy from root `.env.example`) with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` pointed at the dev Supabase project (ref `hcwcxsijcozoqlrrisjf`). `apps/web/src/lib/supabase.ts` throws at import time if either is missing.
 
+Deploying to a real Supabase project or Vercel (as opposed to local `supabase start` / `pnpm dev`) is not the same as CI's `db` job — CI only applies migrations to an ephemeral local Postgres to verify they're sound. Use the `deploy` skill (`.claude/skills/deploy/`) for actual deploys; it wraps `supabase db push` / Vercel build+deploy with a mandatory dry-run-before-`--yes` pattern and a hard refusal to deploy to prod during the 00:00–06:00 EAT night-audit band. Only the `dev` Supabase project is provisioned today — see `.claude/skills/deploy/references/environments.md` before assuming staging/prod exist.
+
 ## Architecture
 
 ### Non-negotiable rules from the blueprint (D-01…D-23)
