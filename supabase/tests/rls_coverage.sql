@@ -20,8 +20,8 @@ from unnest(array[
 -- 9: permission registry seeded (matches packages/shared-types/src/permissions.ts)
 select is(
   (select count(*)::int from permissions),
-  55,
-  'permission registry has 55 rows'
+  65,
+  'permission registry has 65 rows'
 );
 
 -- 10: has_perm() resolves true for a role that is actually granted the permission,
