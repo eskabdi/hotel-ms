@@ -27,6 +27,12 @@ Per-package (run from `apps/web`): `pnpm lint` = `eslint . --max-warnings 0`; `p
 
 Local dev needs `apps/web/.env` (copy from root `.env.example`) with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` pointed at the dev Supabase project (ref `hcwcxsijcozoqlrrisjf`). `apps/web/src/lib/supabase.ts` throws at import time if either is missing.
 
+### CI (`.github/workflows/ci.yml`)
+
+Two jobs on every PR and push to `main`:
+- **app** — `pnpm install --frozen-lockfile` then `pnpm lint`, `pnpm typecheck`, `pnpm build` across the workspace.
+- **db** — `supabase start` (applies every migration in `supabase/migrations/` from zero against a throwaway local Postgres via `supabase/setup-cli`), then `supabase test db` to run the pgTAP suite in `supabase/tests/rls_coverage.sql`. This is the CI-enforced check that every table keeps 100% RLS coverage (§46) — not just a review-time convention.
+
 ## Architecture
 
 ### Non-negotiable rules from the blueprint (D-01…D-23)
@@ -69,6 +75,10 @@ supabase/seed/, supabase/tests/  # seed.sql + demo data; pgTAP suite
 
 `src/features/` is currently empty — no feature modules have landed. Rule: features never import each other's internals; share via `packages/shared-types` or `src/lib`. Dialogs live beside their feature and register in a `dialogRegistry` (id → lazy component) so the §37 dialog catalog IDs (D-001…D-082) are literal code artifacts, not just doc references.
 
+### Router structure (`src/app/router.tsx`)
+
+Three routes today: `/login` (public), and two children of an `_authenticated` layout route gated by a wrapper component (not a `beforeLoad`, so session state stays single-sourced from `SessionProvider` per §5.3): `/` (`DashboardPage`) and `/platform` (`PlatformPage`, further gated by `PLATFORM_NAV_ROLES` — `platform_admin`/`platform_support` — checked via `useSession().hasRole()`). New authenticated routes are children of `authenticatedRoute`; new public routes are siblings of `loginRoute`.
+
 ### Session and auth flow
 
 `SessionProvider` (`src/lib/session-provider.tsx`) is the single source of session truth — wraps `supabase.auth.getSession()` / `onAuthStateChange()`, decodes custom JWT claims client-side via `jwt-claims.ts` (UI-only decode, no signature verification — that happens server-side on every RPC/RLS check). Claims shape (`tenant_id`, `property_ids`, `roles`, `plan`, `tenant_status`, optional `imp` during impersonation) comes from a `custom_access_token` Postgres Auth Hook described in §5.4. Router guards and permission checks must read from `useSession()`, never from localStorage directly.
@@ -84,3 +94,11 @@ English + Amharic via i18next/react-i18next, resource files at `src/locales/{en,
 ### Design tokens
 
 `tailwind.config.ts` intentionally deviates from the blueprint's own §34 palette — colors are swapped for the palette in `docs/Z_Shop_UX_Design_Color_Palette.md` per a separate plan decision. Status colors (`status.hold`, `status.dirty`, etc.) map to PMS domain states (reservation/room/HK status) — check this token map before hardcoding any status color.
+
+### `components/ui` (shadcn/ui, generated)
+
+Only five primitives generated so far: `badge`, `button`, `card`, `input`, `label`. Add more via the shadcn CLI (`components.json` holds the config) rather than hand-writing — this dir is meant to stay unmodified generated output; put wrappers/customization in `components/engida/` instead (`<Money/>`, `<StatusPill/>`, `<StayDate/>` already exist there).
+
+### `docs/`
+
+`engida-hms-master-blueprint-v1.md` is the spec of record. Also present: `Z_Shop_UX_Design_Color_Palette.md` (source for the Tailwind token swap above), `Engida Cloud HMS — Visual Architecture.PDF`, and two reference screenshots (`zshop-homepage.png`, `zshop-product-detail.png`) used as the visual-style reference for the palette decision.
