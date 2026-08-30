@@ -22,7 +22,7 @@ esac
 require_cmd supabase supabase
 require_cmd jq jq
 require_provisioned_supabase "$TARGET"
-require_env_var SUPABASE_ACCESS_TOKEN
+require_supabase_access_token
 require_env_var SUPABASE_DB_PASSWORD
 
 if [ "$TARGET" = "prod" ]; then

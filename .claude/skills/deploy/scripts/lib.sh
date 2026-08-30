@@ -26,6 +26,23 @@ env_field() {
   jq -r "$1" "$ENV_CONFIG"
 }
 
+# The Supabase CLI itself only reads SUPABASE_ACCESS_TOKEN. This environment
+# currently has it set under the misspelled SUPABASE_ACCESSS_TOKEN (extra S)
+# instead — tolerate that name too rather than block on a container restart,
+# but prefer the correctly-spelled one and export it either way so `supabase`
+# subcommands actually pick it up.
+require_supabase_access_token() {
+  if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+    return 0
+  fi
+  if [ -n "${SUPABASE_ACCESSS_TOKEN:-}" ]; then
+    echo "note: using SUPABASE_ACCESSS_TOKEN (misspelled, extra S) — rename it to SUPABASE_ACCESS_TOKEN in the environment config when convenient." >&2
+    export SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESSS_TOKEN"
+    return 0
+  fi
+  die "SUPABASE_ACCESS_TOKEN is not set. Add it as an environment variable in this session/environment config — never paste tokens into chat."
+}
+
 require_provisioned_supabase() {
   local target="$1"
   local provisioned

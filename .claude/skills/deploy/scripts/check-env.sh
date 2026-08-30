@@ -26,7 +26,7 @@ check "vercel CLI installed" "command -v vercel"
 check "jq installed" "command -v jq"
 
 echo "Credentials (presence only, values never shown):"
-check "SUPABASE_ACCESS_TOKEN set" '[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]'
+check "SUPABASE_ACCESS_TOKEN set (or SUPABASE_ACCESSS_TOKEN)" '[ -n "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -n "${SUPABASE_ACCESSS_TOKEN:-}" ]'
 check "SUPABASE_DB_PASSWORD set" '[ -n "${SUPABASE_DB_PASSWORD:-}" ]'
 check "VERCEL_TOKEN set" '[ -n "${VERCEL_TOKEN:-}" ]'
 
