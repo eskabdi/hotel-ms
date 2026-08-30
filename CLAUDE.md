@@ -51,7 +51,7 @@ These are locked decisions, not suggestions — follow them for any new code:
 
 Every business table gets `app.tenant_id()`, `app.property_ids()`, `app.has_perm(key)` helper-backed policies (schema `app`, see `supabase/migrations/0002_app_schema_helpers.sql` + `0006_identity_rls.sql`), `enable row level security` + `force row level security`, and separate read/write policies keyed to the matching permission from `permissions.ts`. Money tables (`folio_lines`, `payments`, `invoices` — not yet created) will block direct `insert/update/delete` from `authenticated` entirely once they land — writes only through `security definer` RPCs. See blueprint §7 for the exact helper SQL and policy pattern, and `0005_identity_tables.sql`/`0006_identity_rls.sql` for a worked example (including the not-fully-specified-in-the-blueprint judgment call that `roles.tenant_id` is nullable — null rows are shared system-role templates, documented at the top of `0005_identity_tables.sql`).
 
-pgTAP coverage lives in `supabase/tests/rls_coverage.sql` (run via `supabase test db`, requires `supabase start` / Docker running locally first).
+pgTAP coverage lives in `supabase/tests/rls_coverage.sql` (run via `supabase test db`, requires `supabase start` / Docker running locally first). CI (`.github/workflows/ci.yml`) has two jobs: `app` runs `pnpm lint && pnpm typecheck && pnpm build`; `db` runs `supabase start` (applies every migration from zero) then `supabase test db` — so a new table or migration with no matching RLS policy or pgTAP case fails CI, not just review.
 
 ### Intended repo layout (target state per §45)
 
