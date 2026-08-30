@@ -24,6 +24,7 @@ require_cmd jq jq
 require_provisioned_supabase "$TARGET"
 require_supabase_access_token
 require_env_var SUPABASE_DB_PASSWORD
+verify_supabase_token
 
 if [ "$TARGET" = "prod" ]; then
   assert_outside_audit_band
@@ -58,5 +59,7 @@ if [ -d "$FUNCTIONS_DIR" ] && [ -n "$(find "$FUNCTIONS_DIR" -mindepth 1 -maxdept
 else
   echo "== no edge functions in supabase/functions/ yet — skipping functions deploy =="
 fi
+
+warn_if_untracked_files_look_secret
 
 echo "== done: $TARGET migrations applied =="

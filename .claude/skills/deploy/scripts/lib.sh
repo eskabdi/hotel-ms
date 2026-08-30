@@ -43,6 +43,64 @@ require_supabase_access_token() {
   die "SUPABASE_ACCESS_TOKEN is not set. Add it as an environment variable in this session/environment config — never paste tokens into chat."
 }
 
+# A revoked/expired token fails every downstream call with the same generic
+# error `supabase`/`vercel` give for a dozen other problems, well after
+# you've already announced a plan to the user. Confirm it's live first, by
+# status code only — never print the body, never print the token.
+verify_supabase_token() {
+  local code
+  code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+    https://api.supabase.com/v1/projects 2>/dev/null)" || true
+  code="${code:-000}"
+  case "$code" in
+    200) return 0 ;;
+    401|403) die "SUPABASE_ACCESS_TOKEN was rejected (HTTP $code) — it's invalid, expired, or revoked. Get a fresh one from the Supabase dashboard (Account -> Access Tokens) and update it in the environment config." ;;
+    000) echo "note: couldn't reach api.supabase.com to verify SUPABASE_ACCESS_TOKEN (network/proxy blocked, or offline) — proceeding without pre-verification; the real command below will surface the actual failure if there is one." >&2 ;;
+    *) echo "note: unexpected HTTP $code verifying SUPABASE_ACCESS_TOKEN — proceeding anyway, watch the next command's output." >&2 ;;
+  esac
+}
+
+verify_vercel_token() {
+  local code
+  code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 \
+    -H "Authorization: Bearer $VERCEL_TOKEN" \
+    https://api.vercel.com/v2/user 2>/dev/null)" || true
+  code="${code:-000}"
+  case "$code" in
+    200) return 0 ;;
+    401|403) die "VERCEL_TOKEN was rejected (HTTP $code) — it's invalid, expired, or revoked. Get a fresh one from Vercel (Account Settings -> Tokens) and update it in the environment config." ;;
+    000) echo "note: couldn't reach api.vercel.com to verify VERCEL_TOKEN (network/proxy blocked, or offline) — proceeding without pre-verification; the real command below will surface the actual failure if there is one." >&2 ;;
+    *) echo "note: unexpected HTTP $code verifying VERCEL_TOKEN — proceeding anyway, watch the next command's output." >&2 ;;
+  esac
+}
+
+# Vercel writes pulled project env vars (which can include real secrets like
+# a service-role key, per blueprint §47) to .vercel/.env*.local on disk.
+# .gitignore already excludes them (.vercel, *.local), but "ignored" is not
+# "absent" — the next `git add -f`, tarball, or archive of this directory
+# picks them up regardless. Delete them once the build that needed them is
+# done, the same way you'd revoke a credential rather than just hide it.
+cleanup_pulled_vercel_env() {
+  local dir="$1"
+  find "$dir/.vercel" -maxdepth 1 -name '.env*.local' -type f -delete 2>/dev/null || true
+}
+
+# A deploy isn't done when the artifact is live — it's done when nothing the
+# deploy touched left a credential sitting in the working tree. Run this as
+# the last step of any real (--yes) deploy; it's a sanity net, not a
+# substitute for gitignore, and it never prints file contents, only names.
+warn_if_untracked_files_look_secret() {
+  local hits
+  hits="$(git -C "$REPO_ROOT" status --porcelain --untracked-files=all 2>/dev/null \
+    | awk '{print $2}' \
+    | grep -E '\.env(\.|$)|\.local$|secret|token|credential' || true)"
+  if [ -n "$hits" ]; then
+    echo "note: these untracked/modified paths look credential-shaped — confirm none of them actually holds a secret before this is pushed or archived:" >&2
+    while IFS= read -r line; do echo "  $line" >&2; done <<< "$hits"
+  fi
+}
+
 require_provisioned_supabase() {
   local target="$1"
   local provisioned

@@ -22,6 +22,7 @@ esac
 require_cmd vercel vercel
 require_cmd jq jq
 require_env_var VERCEL_TOKEN
+verify_vercel_token
 
 if [ "$TARGET" = "prod" ]; then
   assert_outside_audit_band
@@ -62,6 +63,7 @@ if [ "$APPLY" = "false" ]; then
   echo
   echo "Build succeeded. Nothing was deployed. Review the build output above with the user, then re-run:"
   echo "  deploy-vercel.sh $TARGET --yes"
+  cleanup_pulled_vercel_env "$WEB_DIR"
   exit 0
 fi
 
@@ -78,5 +80,8 @@ if [ "$TARGET" = "staging" ]; then
     echo "note: web_domains.staging is not set in environments.json — deployed as a preview URL only, not promoted to a staging domain. Set the domain there once one exists, or run 'vercel alias set $DEPLOY_URL <domain>' manually."
   fi
 fi
+
+cleanup_pulled_vercel_env "$WEB_DIR"
+warn_if_untracked_files_look_secret
 
 echo "== done: $TARGET deployed =="
