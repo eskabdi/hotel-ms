@@ -27,6 +27,8 @@ Per-package (run from `apps/web`): `pnpm lint` = `eslint . --max-warnings 0`; `p
 
 Local dev needs `apps/web/.env` (copy from root `.env.example`) with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` pointed at the dev Supabase project (ref `hcwcxsijcozoqlrrisjf`). `apps/web/src/lib/supabase.ts` throws at import time if either is missing.
 
+Deploying to a real Supabase project or Vercel (as opposed to local `supabase start` / `pnpm dev`) is not the same as CI's `db` job — CI only applies migrations to an ephemeral local Postgres to verify they're sound. Use the `deploy` skill (`.claude/skills/deploy/`) for actual deploys; it wraps `supabase db push` / Vercel build+deploy with a mandatory dry-run-before-`--yes` pattern and a hard refusal to deploy to prod during the 00:00–06:00 EAT night-audit band. Only the `dev` Supabase project is provisioned today — see `.claude/skills/deploy/references/environments.md` before assuming staging/prod exist.
+
 ## Architecture
 
 ### Non-negotiable rules from the blueprint (D-01…D-23)
@@ -51,7 +53,7 @@ These are locked decisions, not suggestions — follow them for any new code:
 
 Every business table gets `app.tenant_id()`, `app.property_ids()`, `app.has_perm(key)` helper-backed policies (schema `app`, see `supabase/migrations/0002_app_schema_helpers.sql` + `0006_identity_rls.sql`), `enable row level security` + `force row level security`, and separate read/write policies keyed to the matching permission from `permissions.ts`. Money tables (`folio_lines`, `payments`, `invoices` — not yet created) will block direct `insert/update/delete` from `authenticated` entirely once they land — writes only through `security definer` RPCs. See blueprint §7 for the exact helper SQL and policy pattern, and `0005_identity_tables.sql`/`0006_identity_rls.sql` for a worked example (including the not-fully-specified-in-the-blueprint judgment call that `roles.tenant_id` is nullable — null rows are shared system-role templates, documented at the top of `0005_identity_tables.sql`).
 
-pgTAP coverage lives in `supabase/tests/rls_coverage.sql` (run via `supabase test db`, requires `supabase start` / Docker running locally first).
+pgTAP coverage lives in `supabase/tests/rls_coverage.sql` (run via `supabase test db`, requires `supabase start` / Docker running locally first). CI (`.github/workflows/ci.yml`) has two jobs: `app` runs `pnpm lint && pnpm typecheck && pnpm build`; `db` runs `supabase start` (applies every migration from zero) then `supabase test db` — so a new table or migration with no matching RLS policy or pgTAP case fails CI, not just review.
 
 ### Intended repo layout (target state per §45)
 
